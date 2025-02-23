@@ -132,7 +132,9 @@ def run_training_loop(params):
             # TODO: collect `params['batch_size']` transitions
             # HINT: use utils.sample_trajectories
             # TODO: implement missing parts of utils.sample_trajectory
-            paths, envsteps_this_batch = TODO
+            paths, envsteps_this_batch = utils.sample_trajectories(
+                env, policy=actor, min_timesteps_per_batch=10,
+                max_path_length = params['ep_len'], render = log_video)
 
             # relabel the collected obs with actions from a provided expert policy
             if params['do_dagger']:
@@ -141,7 +143,11 @@ def run_training_loop(params):
                 # TODO: relabel collected obsevations (from our policy) with labels from expert policy
                 # HINT: query the policy (using the get_action function) with paths[i]["observation"]
                 # and replace paths[i]["action"] with these expert labels
-                paths = TODO
+                for path in paths:
+                    obs = path["observation"]
+                    acs = expert_policy.get_action(obs)
+                    assert path["action"].shape == acs.shape
+                    path["action"] = acs
 
         total_envsteps += envsteps_this_batch
         # add collected data to replay buffer
