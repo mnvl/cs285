@@ -101,8 +101,7 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         )
         self.mean_net.to(ptu.device)
         self.logstd = nn.Parameter(
-
-            torch.zeros(self.ac_dim, dtype=torch.float32, device=ptu.device)
+            torch.ones(self.ac_dim, dtype=torch.float32, device=ptu.device)
         )
         self.logstd.to(ptu.device)
         self.optimizer = optim.Adam(
@@ -129,7 +128,23 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         # through it. For example, you can return a torch.FloatTensor. You can also
         # return more flexible objects, such as a
         # `torch.distributions.Distribution` object. It's up to you!
-        raise NotImplementedError
+        return self.mean_net(observation)
+
+
+    def sample_actions(self, observations):
+        """
+        Sample actions from the policy
+
+        :param observations: observation(s) to query the policy
+        :return:
+            list: observation values
+        """
+        observations = ptu.from_numpy(observations)
+        actions_pred = self.forward(observations)
+        actions_distr = torch.distributions.Normal(loc = actions_pred, scale=self.logstd)
+        sampled_actions = actions_distr.sample()
+        return ptu.to_numpy(sampled_actions)
+
 
     def update(self, observations, actions):
         """
@@ -141,7 +156,20 @@ class MLPPolicySL(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             dict: 'Training Loss': supervised learning loss
         """
         # TODO: update the policy and return the loss
-        loss = TODO
+        observations = ptu.from_numpy(observations)
+        actions = ptu.from_numpy(actions)
+
+        self.optimizer.zero_grad()
+
+        actions_pred = self.forward(observations)
+        actions_distr = torch.distributions.Normal(loc = actions_pred, scale=self.logstd)
+        actions_log_probs = actions_distr.log_prob(actions)
+        loss = -torch.sum(actions_log_probs)
+
+        loss.backward()
+
+        self.optimizer.step()
+
         return {
             # You can add extra logging information here, but keep this line
             'Training Loss': ptu.to_numpy(loss),

@@ -156,8 +156,10 @@ def run_training_loop(params):
           # HINT1: how much data = params['train_batch_size']
           # HINT2: use np.random.permutation to sample random indices
           # HINT3: return corresponding data points from each array (i.e., not different indices from each array)
-          # for imitation learning, we only need observations and actions.  
-          ob_batch, ac_batch = TODO
+          # for imitation learning, we only need observations and actions.
+          batch_size = params['train_batch_size']
+          indices = np.random.permutation(len(replay_buffer))[:batch_size]
+          ob_batch, ac_batch = replay_buffer.obs[indices], replay_buffer.acs[indices]
 
           # use the sampled data to train an agent
           train_log = actor.update(ob_batch, ac_batch)
@@ -173,6 +175,7 @@ def run_training_loop(params):
 
             # save videos
             if eval_video_paths is not None:
+                print("\nSaving videos...")
                 logger.log_paths_as_videos(
                     eval_video_paths, itr,
                     fps=fps,
